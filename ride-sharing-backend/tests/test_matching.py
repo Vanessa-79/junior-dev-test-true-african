@@ -29,7 +29,7 @@ class TestMatching:
         driver1 = Driver.objects.create(
             user=driver1_user,
             vehicle_model="Toyota Camry",
-            vehicle_plate="ABC123",
+            vehicle_number="ABC123",
             current_location="Kampala Central",
             status="available",
         )
@@ -37,7 +37,7 @@ class TestMatching:
         driver2 = Driver.objects.create(
             user=driver2_user,
             vehicle_model="Honda Civic",
-            vehicle_plate="DEF456",
+            vehicle_number="DEF456",  # Changed from vehicle_plate
             current_location="Nakawa",
             status="available",
         )
@@ -45,7 +45,7 @@ class TestMatching:
         driver3 = Driver.objects.create(
             user=driver3_user,
             vehicle_model="Ford Focus",
-            vehicle_plate="GHI789",
+            vehicle_number="GHI789",  # Changed from vehicle_plate
             current_location="Entebbe",
             status="busy",
         )

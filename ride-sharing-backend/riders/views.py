@@ -70,36 +70,40 @@ class RiderViewSet(viewsets.ModelViewSet):
     queryset = Rider.objects.all()
     serializer_class = RiderSerializer
 
+    def get_permissions(self):
+        """Allow registration without authentication"""
+        if self.action == "create":
+            return [AllowAny()]
+        return super().get_permissions()
+
     def create(self, request, *args, **kwargs):
         username = request.data.get("username")
+        password = request.data.get("password")
+        email = request.data.get("email")
+
         if User.objects.filter(username=username).exists():
             return Response(
-                {
-                    "status": "error",
-                    "message": "Registration failed",
-                    "errors": {"username": ["This username is already taken"]},
-                },
+                {"status": "error", "message": "Username already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            return Response(
-                {
-                    "status": "success",
-                    "message": "Rider registered successfully",
-                    "data": serializer.data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
+        # Create user
+        user = User.objects.create_user(
+            username=username, password=password, email=email
+        )
+
+        # Create rider profile
+        rider = Rider.objects.create(
+            user=user, phone_number=request.data.get("phone_number", "")
+        )
+
         return Response(
             {
-                "status": "error",
-                "message": "Registration failed",
-                "errors": serializer.errors,
+                "status": "success",
+                "message": "User registered successfully",
+                "token": "dummy_token",  # You would generate a real token here
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_201_CREATED,
         )
 
 
@@ -133,5 +137,33 @@ class RiderRegistrationView(APIView):
         )
 
 
-user = User.objects.get(username="Vanessa")
-print(user)
+class UserRegistrationView(APIView):
+    permission_classes = [AllowAny]  # Allow anyone to register
+
+    def post(self, request):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        email = request.data.get("email")
+
+        if not username or not password:
+            return Response(
+                {"error": "Please provide both username and password"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Create user and rider profile
+        user = User.objects.create_user(
+            username=username, password=password, email=email
+        )
+
+        Rider.objects.create(user=user)
+
+        return Response(
+            {"status": "success", "message": "User registered successfully"},
+            status=status.HTTP_201_CREATED,
+        )

@@ -29,4 +29,25 @@ urlpatterns = [
     path("api/drivers/", DriverViewSet.as_view({"post": "create", "get": "list"})),
     path("api/request-ride/", RideViewSet.as_view({"post": "create"})),
     path("api/request-status/<int:pk>/", RideViewSet.as_view({"get": "retrieve"})),
+
+
+    
+    path(
+        "api/register/", RiderViewSet.as_view({"post": "create"}), name="user-register"
+    ),
+    path(
+        "api/rides/",
+        RideViewSet.as_view({"get": "list", "post": "create"}),
+        name="ride-list",
+    ),
+    path(
+        "api/rides/<int:pk>/",
+        RideViewSet.as_view({"get": "retrieve"}),
+        name="ride-detail",
+    ),
+    path(
+        "api/rides/<int:pk>/cancel/",
+        RideViewSet.as_view({"post": "cancel"}),
+        name="ride-cancel",
+    ),
 ]

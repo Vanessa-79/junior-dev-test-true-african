@@ -123,7 +123,7 @@ class RideViewSet(viewsets.ModelViewSet):
         ride = self.get_object()
         ride.status = "cancelled"
         ride.save()
-        return Response({"status": "cancelled"})
+        return Response({"status": "success", "message": "Ride cancelled successfully"})
 
 
 class RequestRideView(APIView):

@@ -3,19 +3,13 @@ from .models import Ride
 
 
 class RideSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
-    email = serializers.EmailField(write_only=True)
-    phone_number = serializers.CharField(write_only=True)
+    rider_username = serializers.CharField(write_only=True)
 
     class Meta:
         model = Ride
         fields = [
             "id",
-            "username",
-            "password",
-            "email",
-            "phone_number",
+            "rider_username",
             "pickup_place",
             "destination_place",
             "status",
@@ -26,10 +20,7 @@ class RideSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Remove user-related fields
-        username = validated_data.pop("username")
-        password = validated_data.pop("password")
-        email = validated_data.pop("email")
-        phone_number = validated_data.pop("phone_number")
+        username = validated_data.pop("rider_username")
 
         # Get or create rider
         from django.contrib.auth.models import User

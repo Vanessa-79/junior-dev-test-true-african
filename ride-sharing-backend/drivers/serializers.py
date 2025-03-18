@@ -12,8 +12,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 class DriverSerializer(serializers.ModelSerializer):
     username = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
     email = serializers.EmailField(write_only=True)
+    driver_username = serializers.CharField(source="user.username", read_only=True)
+    driver_email = serializers.EmailField(source="user.email", read_only=True)
 
     class Meta:
         model = Driver
@@ -22,22 +24,30 @@ class DriverSerializer(serializers.ModelSerializer):
             "username",
             "password",
             "email",
+            "driver_username",
+            "driver_email",
             "phone_number",
             "vehicle_model",
             "vehicle_number",
             "current_location",
             "status",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "driver_username", "driver_email"]
 
     def create(self, validated_data):
-        user_data = {
-            "username": validated_data.pop("username"),
-            "password": validated_data.pop("password"),
-            "email": validated_data.pop("email"),
-        }
-        user = User.objects.create_user(**user_data)
+        # Extract user data
+        username = validated_data.pop("username")
+        password = validated_data.pop("password")
+        email = validated_data.pop("email")
+
+        # Create user
+        user = User.objects.create_user(
+            username=username, email=email, password=password
+        )
+
+        # Create driver profile
         driver = Driver.objects.create(user=user, **validated_data)
+
         return driver
 
 

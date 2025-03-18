@@ -16,54 +16,53 @@ class RideViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        email = request.data.get("email")
-        phone_number = request.data.get("phone_number")
+        rider_username = request.data.get("rider_username")
 
         try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            user = User.objects.create_user(
-                username=username, email=email, password=password
-            )
-            Rider.objects.create(user=user, phone_number=phone_number)
-
-        try:
+            user = User.objects.get(username=rider_username)
             rider = Rider.objects.get(user=user)
-        except Rider.DoesNotExist:
+        except (User.DoesNotExist, Rider.DoesNotExist):
             return Response(
-                {"error": "No rider profile found for authenticated user"},
+                {"status": "error", "message": "Rider not found"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         available_driver = Driver.objects.filter(status="available").first()
         if not available_driver:
             return Response(
-                {"error": "No available drivers at the moment"},
+                {"status": "error", "message": "No available drivers at the moment"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            ride = serializer.save(rider=rider, driver=available_driver)
-            available_driver.status = "busy"
-            available_driver.save()
-            return Response(
-                {
-                    "status": "success",
-                    "message": "Ride requested successfully",
-                    "data": serializer.data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
+        ride = Ride.objects.create(
+            rider=rider,
+            driver=available_driver,
+            pickup_place=request.data.get("pickup_place"),
+            destination_place=request.data.get("destination_place"),
+            status="requested",
+        )
+
+        available_driver.status = "busy"
+        available_driver.save()
+
         return Response(
             {
-                "status": "error",
-                "message": "Ride request failed",
-                "errors": serializer.errors,
+                "status": "success",
+                "message": "Ride requested successfully",
+                "data": {
+                    "id": ride.id,
+                    "pickup_place": ride.pickup_place,
+                    "destination_place": ride.destination_place,
+                    "status": ride.status,
+                    "driver": {
+                        "name": ride.driver.user.username,
+                        "phone": ride.driver.phone_number,
+                        "vehicle": ride.driver.vehicle_model,
+                    },
+                    "created_at": ride.created_at,
+                },
             },
-            status=status.HTTP_400_BAD_REQUEST,
+            status=status.HTTP_201_CREATED,
         )
 
     def retrieve(self, request, *args, **kwargs):

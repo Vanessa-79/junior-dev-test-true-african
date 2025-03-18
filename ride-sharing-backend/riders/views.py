@@ -1,21 +1,22 @@
 from django.shortcuts import render
+from django.contrib.auth.models import User
 
 # Create your views here.
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from drivers.models import Driver
 from drivers.serializers import DriverSerializer
 from drivers.api import GeoLocationAPI
 from .models import Rider
 from .serializers import RiderSerializer
-from rest_framework.permissions import IsAuthenticated
 
 
 class DriverViewSet(viewsets.ModelViewSet):
     queryset = Driver.objects.all()
     serializer_class = DriverSerializer
-    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["GET"])
     def available(self, request):
@@ -29,15 +30,17 @@ class DriverViewSet(viewsets.ModelViewSet):
         """Update a driver's location"""
         try:
             driver = self.get_object()
-            location = request.data.get("location")
+            lat = request.data.get("latitude")
+            lng = request.data.get("longitude")
 
-            if not location:
+            if not lat or not lng:
                 return Response(
-                    {"error": "Location is required"},
+                    {"error": "Latitude and longitude are required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            driver.current_location = location
+            driver.latitude = lat
+            driver.longitude = lng
             driver.save()
 
             return Response({"status": "Location updated"})
@@ -66,4 +69,69 @@ class DriverViewSet(viewsets.ModelViewSet):
 class RiderViewSet(viewsets.ModelViewSet):
     queryset = Rider.objects.all()
     serializer_class = RiderSerializer
-    permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Registration failed",
+                    "errors": {"username": ["This username is already taken"]},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Rider registered successfully",
+                    "data": serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {
+                "status": "error",
+                "message": "Registration failed",
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+class RiderRegistrationView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RiderSerializer(data=request.data)
+        if serializer.is_valid():
+            rider = serializer.save()
+            return Response(
+                {
+                    "status": "success",
+                    "message": "Rider registered successfully",
+                    "data": {
+                        "id": rider.id,
+                        "username": rider.user.username,
+                        "email": rider.user.email,
+                        "phone_number": rider.phone_number,
+                    },
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(
+            {
+                "status": "error",
+                "message": "Invalid data provided",
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+
+user = User.objects.get(username="Vanessa")
+print(user)

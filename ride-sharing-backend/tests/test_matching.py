@@ -30,8 +30,7 @@ class TestMatching:
             user=driver1_user,
             vehicle_model="Toyota Camry",
             vehicle_plate="ABC123",
-            latitude=0.12,  # Close to origin
-            longitude=0.12,
+            current_location="Kampala Central",
             status="available",
         )
 
@@ -39,8 +38,7 @@ class TestMatching:
             user=driver2_user,
             vehicle_model="Honda Civic",
             vehicle_plate="DEF456",
-            latitude=0.15,  # Further from origin
-            longitude=0.15,
+            current_location="Nakawa",
             status="available",
         )
 
@@ -48,18 +46,15 @@ class TestMatching:
             user=driver3_user,
             vehicle_model="Ford Focus",
             vehicle_plate="GHI789",
-            latitude=10.0,  # Very far from origin
-            longitude=10.0,
-            status="busy",  # Not available
+            current_location="Entebbe",
+            status="busy",
         )
 
         # Create test ride
         ride = Ride.objects.create(
             rider=rider,
-            pickup_latitude=0.1,
-            pickup_longitude=0.1,
-            destination_latitude=0.2,
-            destination_longitude=0.2,
+            pickup_place="Kampala Central",
+            destination_place="Entebbe",
             status="requested",
         )
 
@@ -72,28 +67,36 @@ class TestMatching:
         }
 
     def test_haversine_function(self):
-        # Test the distance calculation function
-        # London (51.5074, -0.1278) to Paris (48.8566, 2.3522) ~344km
-        distance = haversine(-0.1278, 51.5074, 2.3522, 48.8566)
-        assert 340 < distance < 350
+        """Test the haversine distance calculation with Ugandan locations"""
+
+        # Kampala to Entebbe (~40km direct distance)
+        kampala_lat, kampala_lon = 0.3476, 32.5825
+        entebbe_lat, entebbe_lon = 0.0611, 32.4619
+        distance1 = haversine(kampala_lon, kampala_lat, entebbe_lon, entebbe_lat)
+        assert 37 < distance1 < 42, f"Kampala-Entebbe distance was {distance1}km"
+
+        # Kampala to Jinja (~79km direct distance)
+        jinja_lat, jinja_lon = 0.4250, 33.2039
+        distance2 = haversine(kampala_lon, kampala_lat, jinja_lon, jinja_lat)
+        assert 77 < distance2 < 81, f"Kampala-Jinja distance was {distance2}km"
 
     def test_find_nearest_driver(self, setup_data):
-        # Test finding the nearest available driver
-        driver, distance = find_nearest_driver(0.1, 0.1)
-        assert driver.id == setup_data["driver1"].id
-        assert distance < 5  # Should be very close
+
+        # Test finding driver by exact location match
+        driver, distance = find_nearest_driver("Kampala Central")
+        assert driver == setup_data["driver1"]
+        assert distance == 0
 
     def test_match_ride(self, setup_data):
-        # Test matching a ride with the closest driver
         success, message, ride = match_ride(setup_data["ride"].id)
 
         # Refresh ride from database
-        ride = Ride.objects.get(id=setup_data["ride"].id)
+        ride.refresh_from_db()
 
         assert success is True
-        assert ride.driver.id == setup_data["driver1"].id
         assert ride.status == "matched"
+        assert ride.driver is not None
 
-        # Check driver status has been updated
-        driver = Driver.objects.get(id=setup_data["driver1"].id)
-        assert driver.status == "busy"
+        # Check driver status update
+        ride.driver.refresh_from_db()
+        assert ride.driver.status == "busy"

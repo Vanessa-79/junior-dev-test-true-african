@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from riders.models import Rider
+from .models import Rider
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -11,15 +11,25 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RiderSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
+    username = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, style={"input_type": "password"})
+    email = serializers.EmailField(write_only=True)
 
     class Meta:
         model = Rider
-        fields = ["id", "user", "rating", "created_at"]
-        read_only_fields = ("id", "created_at")
+        fields = ("id", "username", "password", "email", "phone_number")
+        read_only_fields = ("id",)
 
     def create(self, validated_data):
-        user_data = validated_data.pop("user")
-        user = User.objects.create_user(**user_data)
-        rider = Rider.objects.create(user=user, **validated_data)
+        username = validated_data.pop("username")
+        password = validated_data.pop("password")
+        email = validated_data.pop("email")
+
+        user = User.objects.create_user(
+            username=username, email=email, password=password
+        )
+
+        rider = Rider.objects.create(
+            user=user, phone_number=validated_data["phone_number"]
+        )
         return rider

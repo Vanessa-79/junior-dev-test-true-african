@@ -2,8 +2,11 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from django.db import IntegrityError
+from django.contrib.auth.models import User
 from .models import Driver
-from .serializers import DriverSerializer
+from .serializers import DriverSerializer, DriverRegistrationSerializer
 
 
 class DriverViewSet(viewsets.ModelViewSet):
@@ -60,3 +63,80 @@ class DriverViewSet(viewsets.ModelViewSet):
         driver.save()
 
         return Response({"status": f"Driver status updated to {new_status}"})
+
+    @action(detail=True, methods=["post"])
+    def update_status(self, request, pk=None):
+        driver = self.get_object()
+        status = request.data.get("status")
+        if status not in ["available", "busy", "offline"]:
+            return Response(
+                {"status": "error", "message": "Invalid status"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        driver.status = status
+        driver.save()
+        return Response(
+            {
+                "status": "success",
+                "message": "Driver status updated",
+                "data": {"id": driver.id, "status": driver.status},
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class DriverRegistrationView(APIView):
+    permission_classes = []  # Allow unauthenticated registration
+
+    def post(self, request):
+        # Check if username already exists
+        username = request.data.get("username")
+        if User.objects.filter(username=username).exists():
+            return Response(
+                {
+                    "status": "error",
+                    "message": "Registration failed",
+                    "errors": {"username": ["This username is already taken"]},
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = DriverSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                driver = serializer.save()
+                return Response(
+                    {
+                        "status": "success",
+                        "message": "Driver registered successfully",
+                        "data": {
+                            "id": driver.id,
+                            "username": driver.user.username,
+                            "email": driver.user.email,
+                            "phone_number": driver.phone_number,
+                            "vehicle_model": driver.vehicle_model,
+                            "vehicle_number": driver.vehicle_number,
+                            "current_location": driver.current_location,
+                            "status": driver.status,
+                        },
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
+            except Exception as e:
+                return Response(
+                    {
+                        "status": "error",
+                        "message": "Registration failed",
+                        "errors": str(e),
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        return Response(
+            {
+                "status": "error",
+                "message": "Invalid data provided",
+                "errors": serializer.errors,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

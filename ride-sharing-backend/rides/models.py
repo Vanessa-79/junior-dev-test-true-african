@@ -1,6 +1,7 @@
 from django.db import models
-from drivers.models import Driver
+from django.contrib.auth.models import User
 from riders.models import Rider
+from drivers.models import Driver  # Use the Driver model from the drivers app
 
 
 class Ride(models.Model):
@@ -11,10 +12,10 @@ class Ride(models.Model):
         ("cancelled", "Cancelled"),
     )
 
-    rider = models.ForeignKey(Rider, on_delete=models.CASCADE)
-    driver = models.ForeignKey(Driver, on_delete=models.CASCADE, null=True)
-    pickup_place = models.CharField(max_length=255, default="Kampala")
-    destination_place = models.CharField(max_length=255, default="Salaama")
+    rider_id = models.IntegerField(default=1)  # Add default value
+    driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True)
+    pickup_place = models.CharField(max_length=100)
+    destination_place = models.CharField(max_length=100)
     status = models.CharField(max_length=20, choices=RIDE_STATUS, default="requested")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

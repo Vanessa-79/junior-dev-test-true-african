@@ -5,6 +5,8 @@ from rides.models import Ride
 from rides.serializers import RideSerializer
 from rest_framework.permissions import IsAuthenticated
 from drivers.models import Driver
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 
 
 class RideViewSet(viewsets.ModelViewSet):
@@ -13,44 +15,43 @@ class RideViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
-        """
-        Request a ride endpoint
-        POST /request-ride/
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        ride = serializer.save()
+        """Create a new ride request"""
+        # Extract data from request
+        rider_id = request.data.get("rider_id")
+        pickup_place = request.data.get("pickup_place")
+        destination_place = request.data.get("destination_place")
 
-        # Find available driver in the pickup area
-        available_driver = Driver.objects.filter(
-            is_available=True, status="available", current_location=ride.pickup_place
+        # Validate required fields
+        if not all([rider_id, pickup_place, destination_place]):
+            return Response(
+                {"error": "rider_id, pickup_place, and destination_place are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Find available driver
+        driver = Driver.objects.filter(
+            is_available=True,
+            status="available",
+            current_location=pickup_place
         ).first()
 
-        if available_driver:
-            ride.driver = available_driver
-            ride.status = "ongoing"
-            ride.save()
+        # Create ride
+        ride = Ride.objects.create(
+            rider_id=rider_id,
+            pickup_place=pickup_place,
+            destination_place=destination_place,
+            status="ongoing" if driver else "requested",
+            driver=driver
+        )
 
+        if driver:
             # Update driver status
-            available_driver.is_available = False
-            available_driver.status = "busy"
-            available_driver.save()
+            driver.is_available = False
+            driver.status = "busy"
+            driver.save()
 
-            return Response(
-                {
-                    "message": "Ride created and driver assigned",
-                    "ride": RideSerializer(ride).data,
-                },
-                status=status.HTTP_201_CREATED,
-            )
-        else:
-            return Response(
-                {
-                    "message": "No drivers available in your area",
-                    "ride": RideSerializer(ride).data,
-                },
-                status=status.HTTP_202_ACCEPTED,
-            )
+        serializer = self.get_serializer(ride)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["GET"])
     def status(self, request, pk=None):
@@ -60,25 +61,8 @@ class RideViewSet(viewsets.ModelViewSet):
         """
         try:
             ride = self.get_object()
-            response_data = {
-                "id": ride.id,
-                "status": ride.status,
-                "pickup_place": ride.pickup_place,
-                "destination_place": ride.destination_place,
-                "created_at": ride.created_at,
-                "updated_at": ride.updated_at,
-            }
-
-            if ride.driver:
-                response_data["driver"] = {
-                    "name": f"{ride.driver.user.first_name} {ride.driver.user.last_name}",
-                    "phone": ride.driver.phone_number,
-                    "vehicle": ride.driver.vehicle_model,
-                    "plate": ride.driver.vehicle_plate,
-                    "current_location": ride.driver.current_location,
-                }
-
-            return Response(response_data)
+            serializer = self.get_serializer(ride)
+            return Response(serializer.data)
         except Ride.DoesNotExist:
             return Response(
                 {"error": "Ride not found"}, status=status.HTTP_404_NOT_FOUND
@@ -105,3 +89,70 @@ class RideViewSet(viewsets.ModelViewSet):
         ride.save()
 
         return Response({"status": "Ride cancelled successfully"})
+
+
+class RequestRideView(APIView):
+    def post(self, request):
+        # Extract ride details from the request
+        rider_id = request.data.get("rider_id")
+        pickup_place = request.data.get("pickup_place")
+        destination_place = request.data.get("destination_place")
+
+        # Validate required fields
+        if not rider_id or not pickup_place or not destination_place:
+            return Response(
+                {
+                    "error": "All fields (rider_id, pickup_place, destination_place) are required."
+                },
+                status=400,
+            )
+
+        # Validate rider existence
+        if not Ride.objects.filter(rider_id=rider_id).exists():
+            return Response(
+                {"error": "Invalid rider_id. Rider does not exist."}, status=400
+            )
+
+        # Find an available driver
+        driver = Driver.objects.filter(
+            is_available=True, status="available", current_location=pickup_place
+        ).first()
+
+        if not driver:
+            return Response(
+                {"message": "No available drivers at the moment"}, status=400
+            )
+
+        # Create the ride
+        ride = Ride.objects.create(
+            rider_id=rider_id,
+            pickup_place=pickup_place,
+            destination_place=destination_place,
+            status="ongoing",
+            driver=driver,
+        )
+
+        # Update the driver's status
+        driver.is_available = False
+        driver.status = "busy"
+        driver.save()
+
+        # Include driver details in the response
+        response_data = {
+            "id": ride.id,
+            "rider_id": ride.rider_id,
+            "pickup_place": ride.pickup_place,
+            "destination_place": ride.destination_place,
+            "status": ride.status,
+            "driver": {
+                "name": f"{driver.user.first_name} {driver.user.last_name}",
+                "phone": driver.phone_number,
+                "vehicle": driver.vehicle_model,
+                "plate": driver.vehicle_plate,
+                "current_location": driver.current_location,
+            },
+            "created_at": ride.created_at,
+            "updated_at": ride.updated_at,
+        }
+
+        return Response(response_data, status=201)

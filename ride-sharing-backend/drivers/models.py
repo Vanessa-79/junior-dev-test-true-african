@@ -10,17 +10,15 @@ class Driver(models.Model):
         ("offline", "Offline"),
     )
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="drivers_driver"
+    )  # Add related_name
     vehicle_number = models.CharField(max_length=20)
-    phone_number = models.CharField(
-        max_length=15, default="0000000000"
-    )  # Added default
+    phone_number = models.CharField(max_length=15, default="0000000000")
     rating = models.FloatField(
         default=5.0, validators=[MinValueValidator(1.0), MaxValueValidator(5.0)]
     )
-    current_location = models.CharField(
-        max_length=255, default="Kampala"
-    )  # Changed from lat/long to place name
+    current_location = models.CharField(max_length=255, default="Kampala")
     is_available = models.BooleanField(default=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="offline")
     created_at = models.DateTimeField(auto_now_add=True)

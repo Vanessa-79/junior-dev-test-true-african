@@ -16,8 +16,14 @@ class DriverViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["GET"])
     def available(self, request):
-        """Get all available drivers"""
-        drivers = Driver.objects.filter(status="available")
+        """
+        List available drivers endpoint
+        GET /drivers/available/
+        """
+        drivers = Driver.objects.filter(
+            is_available=True, status="available"
+        ).select_related("user")
+
         serializer = self.get_serializer(drivers, many=True)
         return Response(serializer.data)
 

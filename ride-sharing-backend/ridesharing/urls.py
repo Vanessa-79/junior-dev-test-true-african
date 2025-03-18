@@ -20,15 +20,27 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from riders.views import RiderViewSet
 from drivers.views import DriverViewSet
+from rides.views import RideViewSet
 from rest_framework.authtoken.views import obtain_auth_token
 
 router = DefaultRouter()
 router.register(r"riders", RiderViewSet)
 router.register(r"drivers", DriverViewSet)
+router.register(r"rides", RideViewSet)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include(router.urls)),
     path("api/token/", obtain_auth_token, name="api_token"),
     path("api/auth/", include("rest_framework.urls")),
+    path(
+        "api/request-ride/",
+        RideViewSet.as_view({"post": "create"}),
+        name="request-ride",
+    ),
+    path(
+        "api/ride-status/<int:pk>/",
+        RideViewSet.as_view({"get": "status"}),
+        name="ride-status",
+    ),
 ]

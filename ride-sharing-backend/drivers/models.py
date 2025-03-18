@@ -18,8 +18,9 @@ class Driver(models.Model):
     rating = models.FloatField(
         default=5.0, validators=[MinValueValidator(1.0), MaxValueValidator(5.0)]
     )
-    latitude = models.FloatField(default=0.0)
-    longitude = models.FloatField(default=0.0)
+    current_location = models.CharField(
+        max_length=255, default="Kampala"
+    )  # Changed from lat/long to place name
     is_available = models.BooleanField(default=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="offline")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -27,4 +28,6 @@ class Driver(models.Model):
     vehicle_plate = models.CharField(max_length=20, default="")
 
     def __str__(self):
-        return f"{self.user.username} - {self.vehicle_number}"
+        return (
+            f"{self.user.username} - {self.vehicle_number} at {self.current_location}"
+        )

@@ -1,12 +1,10 @@
 from rest_framework import serializers
 from .models import Ride
-from riders.models import Rider
-from drivers.models import Driver
 
 
 class RideSerializer(serializers.ModelSerializer):
     rider_id = serializers.PrimaryKeyRelatedField(
-        queryset=Rider.objects.all(), source="rider"
+        source="rider", queryset=Rider.objects.all()
     )
 
     class Meta:

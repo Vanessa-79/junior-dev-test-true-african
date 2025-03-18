@@ -15,6 +15,7 @@ from rest_framework.permissions import IsAuthenticated
 class DriverViewSet(viewsets.ModelViewSet):
     queryset = Driver.objects.all()
     serializer_class = DriverSerializer
+    permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=["GET"])
     def available(self, request):
@@ -28,17 +29,15 @@ class DriverViewSet(viewsets.ModelViewSet):
         """Update a driver's location"""
         try:
             driver = self.get_object()
-            lat = request.data.get("latitude")
-            lng = request.data.get("longitude")
+            location = request.data.get("location")
 
-            if not lat or not lng:
+            if not location:
                 return Response(
-                    {"error": "Latitude and longitude are required"},
+                    {"error": "Location is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            driver.latitude = lat
-            driver.longitude = lng
+            driver.current_location = location
             driver.save()
 
             return Response({"status": "Location updated"})

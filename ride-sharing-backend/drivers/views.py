@@ -2,11 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from drivers.models import Driver
-from drivers.serializers import DriverSerializer
-from drivers.api import GeoLocationAPI
-from django.contrib.auth.models import User
-from rest_framework.authtoken.models import Token
+from .models import Driver
+from .serializers import DriverSerializer
 
 
 class DriverViewSet(viewsets.ModelViewSet):
@@ -16,13 +13,12 @@ class DriverViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["GET"])
     def available(self, request):
-        """
-        List available drivers endpoint
-        GET /drivers/available/
-        """
-        drivers = Driver.objects.filter(
-            is_available=True, status="available"
-        ).select_related("user")
+        """List all available drivers"""
+        location = request.query_params.get("location", None)
+        drivers = Driver.objects.filter(is_available=True, status="available")
+
+        if location:
+            drivers = drivers.filter(current_location=location)
 
         serializer = self.get_serializer(drivers, many=True)
         return Response(serializer.data)
@@ -32,17 +28,15 @@ class DriverViewSet(viewsets.ModelViewSet):
         """Update a driver's location"""
         try:
             driver = self.get_object()
-            lat = request.data.get("latitude")
-            lng = request.data.get("longitude")
+            location = request.data.get("location")
 
-            if not lat or not lng:
+            if not location:
                 return Response(
-                    {"error": "Latitude and longitude are required"},
+                    {"error": "Location is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            driver.latitude = lat
-            driver.longitude = lng
+            driver.current_location = location
             driver.save()
 
             return Response({"status": "Location updated"})

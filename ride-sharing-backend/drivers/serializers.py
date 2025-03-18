@@ -28,3 +28,18 @@ class DriverSerializer(serializers.ModelSerializer):
             "vehicle_model",
             "vehicle_plate",
         ]
+
+    def create(self, validated_data):
+        """
+        Custom create method to handle writable nested fields.
+        """
+        # Extract nested user data
+        user_data = validated_data.pop("user")
+
+        # Create the user instance
+        user = User.objects.create_user(**user_data)
+
+        # Create the driver instance with the user instance
+        driver = Driver.objects.create(user=user, **validated_data)
+
+        return driver

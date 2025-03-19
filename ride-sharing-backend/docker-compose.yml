@@ -32,34 +32,20 @@ services:
     env_file:
       - config.env
     environment:
-      - DEBUG=True
-      - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=ridesharing
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_HOST=db
-      - DB_PORT=5432
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - PORT=8080
-      - API_KEY=your_api_key_here
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=your-secret-key-here
-      - ALLOWED_HOSTS=localhost,127.0.0.1
+      DEBUG: 'True'
+      DB_ENGINE: django.db.backends.postgresql
+      DB_NAME: ridesharing
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: db
+      DB_PORT: '5432'
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      PORT: '8080'
+      API_KEY: ride_sharing_test_key_123
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: django_secret_key_789xyz123abc
+      ALLOWED_HOSTS: localhost,127.0.0.1
 
 volumes:
   postgres_data:
-```
-FROM python:3.11-slim
-
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]

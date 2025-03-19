@@ -80,4 +80,18 @@ jobs:
         push: true
         tags: |
           vanessa79/ride-sharing:latest
-          vanessa79/ride-sharing:${{ github.sha }} 
+          vanessa79/ride-sharing:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to Render
+      env:
+        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      run: |
+        curl -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+          -H "accept: application/json" \
+          -H "authorization: Bearer ${{ secrets.RENDER_API_KEY }}" 

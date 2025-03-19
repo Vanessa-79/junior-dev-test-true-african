@@ -28,7 +28,7 @@ urlpatterns = [
     path("api/riders/", RiderViewSet.as_view({"post": "create", "get": "list"})),
     path("api/drivers/", DriverViewSet.as_view({"post": "create", "get": "list"})),
     path("api/request-ride/", RideViewSet.as_view({"post": "create"})),
-    path("api/request-status/<int:pk>/", RideViewSet.as_view({"get": "retrieve"})),
+    path("api/ride-status/<int:pk>/", RideViewSet.as_view({"get": "retrieve"})),
 
 
     

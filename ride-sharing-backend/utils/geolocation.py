@@ -1,16 +1,27 @@
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 from django.conf import settings
+from django.core.cache import cache
 from math import radians, sin, cos, sqrt, asin
 
 
 def get_place_coordinates(place_name):
-    """Convert place name to coordinates using OpenStreetMap"""
+    """Convert place name to coordinates using OpenStreetMap with Redis caching"""
+    # Try to get from cache first
+    cache_key = f"coords:{place_name}"
+    coords = cache.get(cache_key)
+    
+    if coords:
+        return coords
+
     try:
         geolocator = Nominatim(user_agent="ride_sharing_test_app")
         location = geolocator.geocode(place_name)
         if location:
-            return location.latitude, location.longitude
+            coords = (location.latitude, location.longitude)
+            # Cache the coordinates
+            cache.set(cache_key, coords, settings.GEOLOCATION_CACHE_TTL)
+            return coords
         return None, None
     except Exception as e:
         print(f"Geocoding error: {e}")
@@ -18,14 +29,24 @@ def get_place_coordinates(place_name):
 
 
 def calculate_distance_between_places(origin_place, destination_place):
-    """Calculate distance between two places in kilometers"""
+    """Calculate distance between two places in kilometers with caching"""
+    # Try to get from cache first
+    cache_key = f"distance:{origin_place}:{destination_place}"
+    distance = cache.get(cache_key)
+    
+    if distance:
+        return distance
+
     origin_coords = get_place_coordinates(origin_place)
     dest_coords = get_place_coordinates(destination_place)
 
     if not all([origin_coords[0], dest_coords[0]]):
         return None
 
-    return geodesic(origin_coords, dest_coords).kilometers
+    distance = geodesic(origin_coords, dest_coords).kilometers
+    # Cache the distance
+    cache.set(cache_key, distance, settings.GEOLOCATION_CACHE_TTL)
+    return distance
 
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -41,6 +62,13 @@ def haversine(lon1, lat1, lon2, lat2):
     Returns:
         Distance in kilometers
     """
+    # Try to get from cache first
+    cache_key = f"haversine:{lon1}:{lat1}:{lon2}:{lat2}"
+    distance = cache.get(cache_key)
+    
+    if distance:
+        return distance
+
     # Validate coordinates are within Uganda's bounds
     if not all(
         -1.478 <= lat <= 4.223 and 29.573 <= lon <= 35.036
@@ -61,4 +89,7 @@ def haversine(lon1, lat1, lon2, lat2):
     # Earth's radius in kilometers
     r = 6371
 
-    return c * r
+    distance = c * r
+    # Cache the result
+    cache.set(cache_key, distance, settings.GEOLOCATION_CACHE_TTL)
+    return distance

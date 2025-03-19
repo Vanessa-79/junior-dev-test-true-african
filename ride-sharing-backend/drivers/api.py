@@ -12,7 +12,7 @@ class GeoLocationAPI:
 
     def geocode_address(self, address):
         """Convert a text address to coordinates (lat, lng)"""
-        # Example using Google Maps Geocoding API
+        # using Google Maps Geocoding API
         url = "https://maps.googleapis.com/maps/api/geocode/json"
         params = {"address": address, "key": self.api_key}
 
@@ -32,7 +32,7 @@ class GeoLocationAPI:
 
     def get_directions(self, origin_lat, origin_lng, dest_lat, dest_lng):
         """Get directions between two points"""
-        # Example using Google Maps Directions API
+        # using Google Maps Directions API
         url = "https://maps.googleapis.com/maps/api/directions/json"
         params = {
             "origin": f"{origin_lat},{origin_lng}",
@@ -73,7 +73,7 @@ class GeoLocationAPI:
             return False
 
 
-# For simulation purposes - in production this would be real-time data
+
 def simulate_driver_movement():
     """Simulate random movement of drivers for testing"""
     import random

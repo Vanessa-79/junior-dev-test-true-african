@@ -101,7 +101,12 @@ class RiderViewSet(viewsets.ModelViewSet):
             {
                 "status": "success",
                 "message": "User registered successfully",
-                "token": "dummy_token",  # You would generate a real token here
+                "data": {
+                    "id": rider.id,
+                    "username": rider.user.username,
+                    "email": rider.user.email,
+                    "phone_number": rider.phone_number,
+                },
             },
             status=status.HTTP_201_CREATED,
         )
@@ -138,7 +143,7 @@ class RiderRegistrationView(APIView):
 
 
 class UserRegistrationView(APIView):
-    permission_classes = [AllowAny]  # Allow anyone to register
+    permission_classes = [AllowAny]  
 
     def post(self, request):
         username = request.data.get("username")

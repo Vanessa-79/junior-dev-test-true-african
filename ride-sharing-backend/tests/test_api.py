@@ -37,13 +37,15 @@ class TestRideAPI:
         )
         driver = Driver.objects.create(
             user=driver_user,
-            vehicle_model="Toyota Camry",
-            vehicle_number="ABC123",  # Changed from vehicle_plate to vehicle_number
+            vehicle_model="Toyota",
+            vehicle_number="ABC123",  
             current_location="Kampala, Uganda",
             status="available",
         )
 
         return {"rider": rider, "driver": driver}
+
+
 
     def test_request_ride(self, auth_client, setup_data):
         """Test requesting a new ride"""
@@ -68,6 +70,8 @@ class TestRideAPI:
         response = auth_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
+
+#
     def test_cancel_ride(self, auth_client, setup_data):
         """Test cancelling a ride"""
         ride = Ride.objects.create(

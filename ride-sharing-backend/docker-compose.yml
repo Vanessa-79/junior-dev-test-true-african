@@ -13,22 +13,24 @@ services:
       - "5432:5432"
 
   redis:
-    image: redis:alpine
+    image: redis:7
     ports:
       - "6379:6379"
 
   web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8080
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "8080:8080"
     depends_on:
       - db
       - redis
     env_file:
-      - .env
+      - config.env
     environment:
       - DEBUG=True
       - DB_ENGINE=django.db.backends.postgresql
@@ -39,6 +41,25 @@ services:
       - DB_PORT=5432
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - PORT=8080
+      - API_KEY=your_api_key_here
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-here
+      - ALLOWED_HOSTS=localhost,127.0.0.1
 
 volumes:
   postgres_data:
+```
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8080"]

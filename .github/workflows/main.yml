@@ -37,12 +37,14 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
     
+    # installing dependencies
     - name: Install dependencies
       working-directory: ./ride-sharing-backend
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
+    # running tests
     - name: Run tests with coverage
       working-directory: ./ride-sharing-backend
       env:
@@ -59,6 +61,7 @@ jobs:
       run: |
         pytest --cov=. --cov-report=xml
 
+# Build and push the Docker image to Docker Hub
   build-and-push:
     needs: test
     runs-on: ubuntu-latest
@@ -82,24 +85,25 @@ jobs:
           vanessa79/ride-sharing:latest
           vanessa79/ride-sharing:${{ github.sha }}
 
-  deploy-to-render:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+# # deploying to render.com
+#   deploy-to-render:
+#     needs: build-and-push
+#     runs-on: ubuntu-latest
+#     if: github.ref == 'refs/heads/main'
     
-    steps:
-    - name: Deploy to Render
-      env:
-        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-      run: |
-        curl -X POST \
-          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
-          -H "accept: application/json" \
-          -H "authorization: Bearer $RENDER_API_KEY" \
-          -H "content-type: application/json"
+#     steps:
+#     - name: Deploy to Render
+#       env:
+#         RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+#         RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+#       run: |
+#         curl -X POST \
+#           "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
+#           -H "accept: application/json" \
+#           -H "authorization: Bearer $RENDER_API_KEY" \
+#           -H "content-type: application/json"
     
-    - name: Wait for deployment
-      run: |
-        echo "Waiting for deployment to complete..."
-        sleep 60  # Give Render some time to start the deployment 
+#     - name: Wait for deployment
+#       run: |
+#         echo "Waiting for deployment to complete..."
+#         sleep 60  # Give Render some time to start the deployment 

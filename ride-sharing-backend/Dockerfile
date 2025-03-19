@@ -46,11 +46,12 @@ WORKDIR /app
 COPY --chown=appuser:appuser . .
 
 # Expose port
-EXPOSE 8000
+ENV PORT=8000
+EXPOSE $PORT
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health/ || exit 1
+    CMD curl -f http://localhost:$PORT/health/ || exit 1
 
 # Start command
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn ridesharing.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"]
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn ridesharing.wsgi:application --bind 0.0.0.0:$PORT --workers 3 --timeout 120"]

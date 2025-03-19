@@ -40,6 +40,7 @@ class TestAuthentication:
         assert response.status_code == 200
 
     def test_user_can_register(self, api_client):
+        """Test user registration with expected response format"""
         url = reverse("user-register")
         data = {
             "username": "newuser",
@@ -48,7 +49,10 @@ class TestAuthentication:
         }
         response = api_client.post(url, data)
         assert response.status_code == status.HTTP_201_CREATED
-        assert "token" in response.data
+        assert response.data["status"] == "success"
+        assert "data" in response.data
+        assert response.data["data"]["username"] == "newuser"
+        assert response.data["data"]["email"] == "newuser@example.com"
 
     def test_user_can_login(self, api_client):
         # Create test user

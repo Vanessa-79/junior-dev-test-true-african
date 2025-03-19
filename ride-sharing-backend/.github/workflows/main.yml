@@ -44,9 +44,8 @@ jobs:
         pwd
         echo "Directory contents:"
         ls -la
-        cd ride-sharing-backend
         echo "Ride-sharing-backend contents:"
-        ls -la
+        ls -la ride-sharing-backend
     
     - name: Install dependencies
       working-directory: ./ride-sharing-backend
